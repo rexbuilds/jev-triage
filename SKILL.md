@@ -48,6 +48,14 @@ if not gate.decision:
 done = enough_to_answer(query, "\n".join(findings), client, threshold=0.7)
 ```
 
+## CLI (no install needed beyond cloning)
+
+```bash
+python -m jev_triage triage --query "Jev API pricing" --results results.json --top-k 3
+# results.json: [{"title": ..., "snippet": ..., "url": ...}]
+# add --mock to force mock mode; without TYPESAFE_API_KEY it is mock anyway
+```
+
 ## The research-loop pattern
 
 ```

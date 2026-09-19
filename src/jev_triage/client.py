@@ -65,6 +65,7 @@ class JevClient:
         self.calls = 0
         self.total_latency_ms = 0.0
         self._sdk_client = None
+        self.last_usage: dict = {}
 
         if not self.mock:
             try:
@@ -105,13 +106,16 @@ class JevClient:
         return answers
 
     def stats(self) -> dict:
-        return {
+        s = {
             "calls": self.calls,
             "total_latency_ms": round(self.total_latency_ms, 1),
             "avg_latency_ms": round(self.total_latency_ms / max(1, self.calls), 1),
             "mock": self.mock,
             "model": self.model,
         }
+        if self.last_usage:
+            s["last_usage"] = self.last_usage
+        return s
 
     # ------------------------------------------------------------- real mode
     def _real_ask(self, state, questions) -> dict[str, Answer]:
@@ -139,6 +143,10 @@ class JevClient:
         resp = self._sdk_client.system_one(
             state=state, questions=sdk_questions, model=self.model
         )
+        try:
+            self.last_usage = resp.usage.model_dump()
+        except Exception:
+            self.last_usage = {"raw": str(getattr(resp, "usage", None))}
         out: dict[str, Answer] = {}
         for name, kind in kinds.items():
             a = resp.answers[name]
