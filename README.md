@@ -1,18 +1,28 @@
+<p align="center">
+  <img src="assets/banner.png" alt="jev-triage: fast triage for deep-research agents" width="100%">
+</p>
+
+<p align="center">
+  <a href="README.zh-CN.md">中文</a> | <b>English</b>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-7ee787?style=flat-square" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-58a6ff?style=flat-square" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/powered_by-TypeSafe_Jev-7ee787?style=flat-square" alt="TypeSafe Jev">
+</p>
+
 # jev-triage
 
-**给 deep research agent 的"分诊台"**:一次并行 Jev 调用，给 N 条搜索结果打相关性分，让昂贵的大模型只读值得读的页面。
+**Triage for deep-research agents.** Score N search results in one parallel TypeSafe Jev call, so the frontier model only reads what is worth reading.
 
-**Triage for deep-research agents**: score N search results in one parallel TypeSafe Jev call, so the frontier model only reads what is worth reading.
+## Why
 
-## 为什么 / Why
+The expensive part of deep research is not *searching*, it is *reading*: fetching 10 full pages and stuffing them into a frontier model is slow and costly. Usually only 3 of the 10 are worth reading. Who picks? Traditionally, another frontier-model call, which costs even more.
 
-Deep research agent 的 loop 里，烧钱的不是"搜"，而是"读"：10 条结果全抓整页、全塞进大模型，又贵又慢。但 10 条里通常只有 3 条值得读。谁来挑？以前只能再调一次大模型来挑，贵上加贵。
+Jev was built for exactly this kind of "fast thinking": scoring 10 search results takes **one parallel call, 70-500ms, about $0.0001**. The triage nurse is on duty; the ER (frontier-model attention) only sees real patients.
 
-Jev 是为这种"快思考"生的：10 条结果的相关性打分，**一次并行调用、70-500ms、约 $0.0001**。分诊护士（triage）就位，抢救室（大模型注意力）只接待真病人。
-
-The expensive part of deep research is not searching, it is *reading*: fetching 10 full pages into a frontier model. Usually only 3 are worth it. Jev scores all candidates in one parallel call, so the frontier model reads the shortlist only.
-
-## 架构 / Architecture
+## Architecture
 
 ```
 query -> [frontier: plan] -> search API -> [jev-triage: 1 call, N scored] -> top-k
@@ -20,9 +30,9 @@ query -> [frontier: plan] -> search API -> [jev-triage: 1 call, N scored] -> top
       -> [gate: enough_to_answer?] -> loop | [frontier: synthesize]
 ```
 
-分工原则 ("快手慢脑"):Jev 负责导航（点哪条、这页有用吗、还要继续吗），大模型负责认知（规划、精读、综合）。
+Division of labor ("fast hands, slow brain"): Jev handles navigation (which link, is this page useful, should we keep searching); the frontier model handles cognition (planning, close reading, synthesis).
 
-## 快速开始 / Quickstart
+## Quickstart
 
 ```bash
 pip install -e .            # no keys needed: mock mode
@@ -41,28 +51,28 @@ for it in tr.top_k:
     print(it.score, it.confidence, it.title)
 ```
 
-`examples/research_loop.py` 是一个可运行的最小 research loop 骨架（search/fetch 函数自备）。
+`examples/research_loop.py` is a runnable minimal research-loop skeleton (bring your own search/fetch functions).
 
-## 先验证，再信任 / Validate first
+## Validate first, trust later
 
-整个项目的承重假设：**Jev 选出的 top-k ≈ 大模型选出的 top-k**。先跑评测：
+The load-bearing assumption of this project: **Jev's top-k ≈ the frontier model's top-k**. Run the evals before believing it:
 
 ```bash
-python -m evals.agreement --data evals/sample_queries.jsonl --judge mock  # 无 key 烟雾测试
-python -m evals.agreement --data my_queries.jsonl                        # 真实评测:需 TYPESAFE_API_KEY + judge key
+python -m evals.agreement --data evals/sample_queries.jsonl --judge mock  # no-key smoke test
+python -m evals.agreement --data my_queries.jsonl                        # real eval: needs TYPESAFE_API_KEY + judge key
 ```
 
-绿灯线：top-k 重合度 >= 0.85。详见 `evals/README.md`。
+Green-light bar: top-k overlap >= 0.85. See `evals/README.md` for details.
 
-## 诚实声明 / Honest notes
+## Honest notes
 
-- Jev 处于 early access；官方的性能数字是自测数据，本项目的数字请自己跑 `evals/`。
-- Mock 模式是关键词启发式，只用于管道开发，不代表真实质量。
-- 本项目不解决搜索索引问题：你仍然需要 Tavily / Exa / Brave 等搜索 API。
+- Jev is in early access; the vendor's performance numbers are self-reported. Run `evals/` yourself for this project's numbers.
+- Mock mode is a keyword heuristic for pipeline development only; it says nothing about real quality.
+- This project does not solve search-index coverage: you still need a search API (Tavily / Exa / Brave).
 
 ## Roadmap
 
 - [x] `triage()` + noul gates + agreement eval harness
-- [ ] Adapter: drop-in triage for GPT Researcher / deer-flow
-- [ ] Standing research: 7x24 topic watch (Jev as gatekeeper)
+- [ ] Adapters: drop-in triage for GPT Researcher / deer-flow
+- [ ] Standing research: 24/7 topic watch with Jev as gatekeeper
 - [ ] Hosted triage API (paid convenience layer)
